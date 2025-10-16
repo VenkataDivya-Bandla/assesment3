@@ -1,43 +1,47 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline - Node Todo App
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  build-push-deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-
-    env:
-      IMAGE_NAME: node-todo
-      REGISTRY: docker.io/${{ secrets.DOCKER_USERNAME }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Set up Docker Buildx (required for modern Docker builds)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker registry
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+      # ✅ Login to Docker Hub using secrets
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+      # ✅ Build Docker image
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/node-todo:latest .
 
+      # ✅ Push image to Docker Hub
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/node-todo:latest
+
+      # ✅ Set up kubectl
       - name: Set up kubectl
         uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
 
+      # ✅ Decode kubeconfig secret and configure access
       - name: Decode and write kubeconfig
         run: |
+          mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" | base64 --decode > $HOME/.kube/config
 
+      # ✅ Deploy to Kubernetes cluster
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/
