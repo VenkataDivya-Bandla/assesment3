@@ -1,47 +1,41 @@
-name: CI/CD Pipeline - Node Todo App
+name: Node Todo CI/CD
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout the repo
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      # Set up Docker Buildx (required for modern Docker builds)
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # ✅ Login to Docker Hub using secrets
-      - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-      # ✅ Build Docker image
-      - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/node-todo:latest .
-
-      # ✅ Push image to Docker Hub
-      - name: Push Docker image
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/node-todo:latest
-
-      # ✅ Set up kubectl
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v4
+      # 2️⃣ Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
         with:
-          version: 'latest'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # ✅ Decode kubeconfig secret and configure access
-      - name: Decode and write kubeconfig
+      # 3️⃣ Build Docker image
+      - name: Build Docker image
         run: |
-          mkdir -p $HOME/.kube
+          docker build -t divyabandla/node-todo:latest .
+
+      # 4️⃣ Push Docker image
+      - name: Push Docker image
+        run: |
+          docker push divyabandla/node-todo:latest
+
+      # 5️⃣ Set up kubeconfig (from your secret)
+      - name: Set up Kubeconfig
+        run: |
           echo "${{ secrets.KUBECONFIG }}" | base64 --decode > $HOME/.kube/config
 
-      # ✅ Deploy to Kubernetes cluster
+      # 6️⃣ Deploy to Kubernetes
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/
