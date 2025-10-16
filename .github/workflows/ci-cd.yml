@@ -9,11 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️⃣ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2️⃣ Log in to Docker Hub
+      # 2️⃣ Log in to Docker Hub using secrets
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -30,8 +30,8 @@ jobs:
         run: |
           docker push divyabandla/node-todo:latest
 
-      # 5️⃣ Set up kubeconfig (from your secret)
-      - name: Set up Kubeconfig
+      # 5️⃣ Set up kubeconfig from base64 secret
+      - name: Set up kubeconfig
         run: |
           echo "${{ secrets.KUBECONFIG }}" | base64 --decode > $HOME/.kube/config
 
